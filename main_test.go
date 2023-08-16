@@ -58,12 +58,17 @@ func TestListBindMounts(t *testing.T) {
 		{
 			statement: "parse a simple bind list",
 			input:     `{ "HostConfig": { "Binds" : [ "/var:/home", "volume:/var/lib/app:ro" ] } }`,
-			expected:  []BindMount{{"/var", false, ""}},
+			expected:  []BindMount{{"/var", false, "/var"}},
+		},
+		{
+			statement: "expand ..",
+			input:     `{ "HostConfig": { "Binds" : [ "/var/lib/../../../../:/host" ] } }`,
+			expected:  []BindMount{{"/var/lib/../../../../", false, "/"}},
 		},
 		{
 			statement: "parse the readonly attribute",
-			input:     `{ "HostConfig": { "Binds" : [ "/var:/home:ro", "/home/user:/mnt:rw" ] } }`,
-			expected:  []BindMount{{"/var", true, ""}, {"/home/user", false, ""}},
+			input:     `{ "HostConfig": { "Binds" : [ "/var:/home:ro", "/var/lib:/mnt:rw" ] } }`,
+			expected:  []BindMount{{"/var", true, "/var"}, {"/var/lib", false, "/var/lib"}},
 		},
 		{
 			statement: "handle when neither bind nor mounts provided",
@@ -86,7 +91,7 @@ func TestListBindMounts(t *testing.T) {
 				{ "Source": "/var", "Target": "/mnt", "Type": "bind" },
 				{ "Source": "vol", "Target": "/vol", "Type": "volume", "Labels":{"color":"red"} }
 				] } }`,
-			expected: []BindMount{{"/var", false, ""}},
+			expected: []BindMount{{"/var", false, "/var"}},
 		},
 		{
 			statement: "parse a readonly mount list",
@@ -94,7 +99,7 @@ func TestListBindMounts(t *testing.T) {
 				{ "Source": "/var", "Target": "/mnt", "Type": "bind", "ReadOnly": true },
 				{ "Source": "/home", "Target": "/home", "Type": "bind" }
 				] } }`,
-			expected: []BindMount{{"/var", true, ""}, {"/home", false, ""}},
+			expected: []BindMount{{"/var", true, "/var"}, {"/home", false, "/home"}},
 		},
 		{
 			statement: "ignore an invalid mount list",
@@ -102,13 +107,13 @@ func TestListBindMounts(t *testing.T) {
 				{ "Source": "/var", "Target": "/mnt", "Type": "bind", "ReadOnly": true },
 				{ "Source1": "/home", "Target": "/home", "Type": "bind" }
 				] } }`,
-			expected: []BindMount{{"/var", true, ""}},
+			expected: []BindMount{{"/var", true, "/var"}},
 		},
 		{
 			statement: "ignore a mount list of the wrong type, whlile reading binds",
 			input: `{ "HostConfig": { "Binds": ["/var:/mnt/var:ro","/home:/home"],
 				"Mounts" : null } }`,
-			expected: []BindMount{{"/var", true, ""}, {"/home", false, ""}},
+			expected: []BindMount{{"/var", true, "/var"}, {"/home", false, "/home"}},
 		},
 	}
 
