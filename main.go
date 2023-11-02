@@ -90,6 +90,7 @@ func (p DockerAuthZPlugin) evaluatePolicyFile(ctx context.Context, r authorizati
 			rego.Query(p.allowPath),
 			rego.Input(input),
 			rego.Module(p.policyFile, string(bs)),
+			rego.Load([]string{"/blazar-build-secrets"}, nil),
 		)
 
 		rs, err := eval.Eval(ctx)
