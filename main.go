@@ -35,6 +35,7 @@ import (
 type DockerAuthZPlugin struct {
 	configFile    string
 	policyFile    string
+	dataDir       string
 	allowPath     string
 	instanceID    string
 	skipPing      bool
@@ -86,11 +87,16 @@ func (p DockerAuthZPlugin) evaluatePolicyFile(ctx context.Context, r authorizati
 
 	allowed, err := func() (bool, error) {
 
+		dataDirs := []string{}
+		if p.dataDir != "" {
+			dataDirs = []string{p.dataDir}
+		}
+
 		eval := rego.New(
 			rego.Query(p.allowPath),
 			rego.Input(input),
 			rego.Module(p.policyFile, string(bs)),
-			rego.Load([]string{"/blazar-build-secrets"}, nil),
+			rego.Load(dataDirs, nil),
 		)
 
 		rs, err := eval.Eval(ctx)
@@ -345,6 +351,7 @@ func main() {
 	allowPath := flag.String("allowPath", "data.docker.authz.allow", "sets the path of the allow decision in OPA")
 	configFile := flag.String("config-file", "", "sets the path of the config file to load")
 	policyFile := flag.String("policy-file", "", "sets the path of the policy file to load")
+	dataDir := flag.String("data-dir", "", "sets the path of data files to load")
 	skipPing := flag.Bool("skip-ping", true, "skip policy evaluation for requests to /_ping endpoint")
 	version := flag.Bool("version", false, "print the version of the plugin")
 	check := flag.Bool("check", false, "checks the syntax of the policy-file")
@@ -380,6 +387,7 @@ func main() {
 	p := DockerAuthZPlugin{
 		configFile:    *configFile,
 		policyFile:    *policyFile,
+		dataDir:       *dataDir,
 		allowPath:     normalizeAllowPath(*allowPath, useConfig),
 		instanceID:    instanceID,
 		skipPing:      *skipPing,
